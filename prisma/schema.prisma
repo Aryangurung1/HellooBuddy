@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @unique
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  File      File[]
+  Message   Message[]
+  image     String?   // Add this line for profile image URL
+
+  stripeCustomerId       String?   @unique @map(name: "stripe_customer_id")
+  stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
+  stripePriceId          String?   @map(name: "stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
+
+  esewaPaymentId        String?   @unique @map(name: "esewa_payment_id") // Unique payment identifier for eSewa
+  esewaCurrentPeriodEnd DateTime? @map(name: "esewa_current_period_end") // Subscription validity for eSewa
+  paymentMethod         String    @default("Stripe")
+
+  isAdmin                Boolean             @default(false)
+  isSuspend              Boolean             @default(false)
+  hasAcceptedTerms       Boolean             @default(false)
+  acceptedTermsVersion   TermsAndConditions? @relation(fields: [acceptedTermsVersionId], references: [id])
+  acceptedTermsVersionId String?
+
+  // Add relation to invoices
+  invoices Invoice[]
+  rewards  Reward[]
+}
+
+model TermsAndConditions {
+  id        String   @id @default(cuid())
+  version   String   @unique
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+  Users     User[]
+}
+
+enum UploadStatus {
+  PENDING
+  PROCESSING
+  FAILED
+  SUCCESS
+}
+
+model File {
+  id   String @id @default(cuid())
+  name String
+
+  uploadStatus UploadStatus @default(PENDING)
+
+  url String
+  key String
+
+  Message Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+model Message {
+  id            String  @id @default(cuid())
+  text          String  @db.Text()
+  isUserMessage Boolean
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
+  File   File?   @relation(fields: [fileId], references: [id])
+  fileId String?
+}
+
+// New Invoice model to track subscription payments
+model Invoice {
+  id            String        @id @default(cuid())
+  amount        Float // Amount charged
+  currency      String        @default("USD")
+  status        InvoiceStatus
+  paymentMethod String // "Stripe" or "eSewa"
+
+  // Payment provider specific fields
+  paymentId String? // Stripe invoice ID or eSewa transaction ID
+
+  // Subscription details
+  subscriptionPeriodStart DateTime
+  subscriptionPeriodEnd   DateTime
+
+  // Metadata
+  description String?
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+
+  // Relation to user
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  // Optional metadata
+  metadata Json? // For storing additional payment provider data
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+// Add this model to your existing schema
+model Reward {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isActive    Boolean  @default(true)
+
+  // Relation to User
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+}

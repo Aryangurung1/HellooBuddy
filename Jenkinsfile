@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git url: 'https://github.com/Aryangurung1/HellooBuddy.git', branch: 'main'
+                git url: 'https://github.com/YOUR_USERNAME/YOUR_REPO.git', branch: 'main'
             }
         }
 
@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                     set -a
-                    source $ENV_FILE
+                    . $ENV_FILE
                     set +a
 
                     docker build \

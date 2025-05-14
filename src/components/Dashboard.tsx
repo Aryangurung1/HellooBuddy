@@ -123,7 +123,7 @@ const Dashboard = ({ subscriptionPlan }: PageProps) => {
       <Dialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete PDF</DialogTitle>
+            <DialogTitle>Delete PDFs</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this PDF? This action cannot be undone.
             </DialogDescription>

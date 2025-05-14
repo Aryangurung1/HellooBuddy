@@ -1,18 +1,21 @@
 FROM node:18-alpine AS deps
 WORKDIR /app
+
+# 1. Copy Prisma first to support postinstall
+COPY prisma ./prisma
+
+# 2. Copy dependencies and install
 COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
-# Prisma schema
-COPY prisma ./prisma
-RUN npx prisma generate
-
+# 3. Build the app
 FROM node:18-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
+# 4. Production image
 FROM node:18-alpine
 WORKDIR /app
 ENV NODE_ENV=production

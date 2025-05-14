@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git url: 'https://github.com/Aryangurung1/HelloBuddy.git', branch: 'main'
+                git url: 'https://github.com/Aryangurung1/HellooBuddy.git', branch: 'main'
             }
         }
 

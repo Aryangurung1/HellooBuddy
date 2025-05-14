@@ -14,10 +14,32 @@ pipeline {
             }
         }
 
+        stage('Load Environment Variables') {
+            steps {
+                script {
+                    def props = readFile(env.ENV_FILE).split('\n')
+                    for (line in props) {
+                        if (line && line.contains('=')) {
+                            def (key, value) = line.tokenize('=')
+                            env."${key.trim()}" = value.trim()
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build -t $IMAGE_NAME .
+                    docker build \
+                    --build-arg KINDE_CLIENT_ID=$KINDE_CLIENT_ID \
+                    --build-arg KINDE_CLIENT_SECRET=$KINDE_CLIENT_SECRET \
+                    --build-arg KINDE_ISSUER_URL=$KINDE_ISSUER_URL \
+                    --build-arg KINDE_SITE_URL=$KINDE_SITE_URL \
+                    --build-arg KINDE_POST_LOGOUT_REDIRECT_URL=$KINDE_POST_LOGOUT_REDIRECT_URL \
+                    --build-arg KINDE_POST_LOGIN_REDIRECT_URL=$KINDE_POST_LOGIN_REDIRECT_URL \
+                    --build-arg DATABASE_URL=$DATABASE_URL \
+                    -t $IMAGE_NAME .
                 '''
             }
         }

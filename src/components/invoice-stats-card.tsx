@@ -50,9 +50,13 @@ export default function InvoiceStatsCards({
 
   // Format currency based on payment method
   const formatCurrency = (amount: number, currency = "USD") => {
-    return new Intl.NumberFormat(currency === "NPR" ? "ne-NP" : "en-US", {
+    // Always use 'en-US' for both USD and NPR, and use 'NPR' for eSewa
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency,
+      currencyDisplay: "code",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 

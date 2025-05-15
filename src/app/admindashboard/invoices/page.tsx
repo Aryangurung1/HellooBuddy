@@ -99,9 +99,13 @@ export default function InvoicesPage() {
     }) || [];
 
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat(currency === "NPR" ? "ne-NP" : "en-US", {
+    // Always use 'en-US' for both USD and NPR, and use 'NPR' for eSewa
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency,
+      currencyDisplay: "code",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 

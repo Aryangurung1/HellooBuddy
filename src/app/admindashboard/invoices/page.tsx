@@ -49,7 +49,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { generateExcelFile } from "@/lib/generate-excel";
-import { generatePDFFile } from "@/lib/generate-pdf";
 import type { DateRange } from "react-day-picker";
 
 type PaymentMethod = "all" | "Stripe" | "eSewa";
@@ -124,16 +123,6 @@ export default function InvoicesPage() {
       .catch((err) => {
         console.error("Failed to copy: ", err);
       });
-  };
-
-  // Function to download invoice as PDF
-  const downloadPDF = (invoice: Invoice) => {
-    try {
-      generatePDFFile(invoice, `invoice-${invoice.id}`);
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      alert("Failed to generate PDF. Please try again.");
-    }
   };
 
   // Function to download invoice as Excel
@@ -323,10 +312,6 @@ export default function InvoicesPage() {
                               >
                                 <FileSpreadsheet className="mr-2 h-4 w-4" />
                                 Download Excel
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => downloadPDF(invoice)}>
-                                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                Download PDF
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

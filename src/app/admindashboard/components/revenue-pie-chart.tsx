@@ -17,6 +17,9 @@ interface RevenuePieChartProps {
   dateRange?: DateRange;
 }
 
+// Current NPR to USD exchange rate
+const NPR_TO_USD_RATE = 0.0075; // 1 NPR = 0.0075 USD
+
 // Define the shape of our chart data items
 interface ChartDataItem {
   name: string;
@@ -71,12 +74,14 @@ export default function RevenuePieChart({ dateRange }: RevenuePieChartProps) {
       });
     }
 
-    // Add eSewa data (NPR)
+    // Add eSewa data (NPR) - convert to USD for comparison
     if (data.paymentMethodCounts.eSewa) {
+      // Convert NPR to USD using the exchange rate
+      const esewaAmountInUSD = data.paymentMethodCounts.eSewa.amount * NPR_TO_USD_RATE;
       chartData.push({
-        name: "eSewa (NPR)",
-        value: data.paymentMethodCounts.eSewa.amount,
-        currency: "NPR",
+        name: "eSewa (USD equivalent)",
+        value: esewaAmountInUSD,
+        currency: "USD",
         count: data.paymentMethodCounts.eSewa.count,
       });
     }

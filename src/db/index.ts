@@ -6,13 +6,32 @@ declare global {
 }
 
 let prisma: PrismaClient;
-if (process.env.NODE_ENV === "production") {
-  prisma = new PrismaClient();
-} else {
-  if (!global.cachedPrisma) {
-    global.cachedPrisma = new PrismaClient();
+try {
+  if (process.env.NODE_ENV === "production") {
+    prisma = new PrismaClient({
+      log: ['error', 'warn'],
+    });
+  } else {
+    if (!global.cachedPrisma) {
+      global.cachedPrisma = new PrismaClient({
+        log: ['error', 'warn'],
+      });
+    }
+    prisma = global.cachedPrisma;
   }
-  prisma = global.cachedPrisma;
+
+  // Test the connection
+  prisma.$connect()
+    .then(() => {
+      console.log('Successfully connected to the database');
+    })
+    .catch((error) => {
+      console.error('Failed to connect to the database:', error);
+      throw error;
+    });
+} catch (error) {
+  console.error('Error initializing Prisma client:', error);
+  throw error;
 }
 
 export const db = prisma;

@@ -972,13 +972,19 @@ export const appRouter = router({
         isAdmin: false,
       },
     });
-    console.log("heelo", totalUsers);
+
     const activeUsers = await db.user.count({
-      where: { isSuspend: false, isAdmin: false },
+      where: { 
+        isSuspend: false, 
+        isAdmin: false 
+      },
     });
 
     const suspendedUsers = await db.user.count({
-      where: { isSuspend: true, isAdmin: false },
+      where: { 
+        isSuspend: true, 
+        isAdmin: false 
+      },
     });
 
     return {

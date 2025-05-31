@@ -608,7 +608,7 @@ export const appRouter = router({
         throw new Error("Unauthorized. User not found.");
       }
 
-      console.log("userID", userId);
+      console.log("Processing payment for user:", userId, "with transaction code:", input.transactionCode);
 
       try {
         // Check if an invoice already exists for this transaction
@@ -620,15 +620,29 @@ export const appRouter = router({
         });
 
         if (existingInvoice) {
+          console.log("Duplicate payment detected:", input.transactionCode);
           throw new Error("This payment has already been processed.");
         }
 
         // Calculate subscription period
         const startDate = new Date();
-        const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days validity
+        const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
         // Update the user payment details in a transaction to ensure atomicity
         const result = await db.$transaction(async (prisma) => {
+          // Double-check for existing invoice inside transaction
+          const doubleCheckInvoice = await prisma.invoice.findFirst({
+            where: {
+              paymentId: input.transactionCode,
+              paymentMethod: "eSewa",
+            },
+          });
+
+          if (doubleCheckInvoice) {
+            console.log("Duplicate payment detected inside transaction:", input.transactionCode);
+            throw new Error("This payment has already been processed.");
+          }
+
           // Update user details
           const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -658,6 +672,7 @@ export const appRouter = router({
           return { user: updatedUser, invoice };
         });
 
+        console.log("Payment processed successfully for user:", userId);
         return { success: true, user: result.user };
       } catch (error) {
         console.error("Error updating payment:", error);

@@ -23,7 +23,7 @@ export default function PaymentMethod() {
     product_service_charge: "0",
     product_delivery_charge: "0",
     product_code: "EPAYTEST",
-    success_url: "https://kalacrum.com",
+    success_url: "https://kalacrum.com/api/esewa/success",
     failure_url: "https://kalacrum.com",
     signed_field_names: "total_amount,transaction_uuid,product_code",
     signature: "",

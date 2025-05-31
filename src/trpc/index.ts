@@ -1256,7 +1256,7 @@ export const appRouter = router({
     const start = subMonths(now, 5); // Go back 5 months
     const end = endOfMonth(now);
 
-    // Query grouped user data from Prisma
+    // Query grouped user data from Prisma, excluding admin users
     const data = await db.user.groupBy({
       by: ["createdAt"],
       _count: {
@@ -1267,6 +1267,7 @@ export const appRouter = router({
           gte: start,
           lte: end,
         },
+        isAdmin: false, // Exclude admin users
       },
     });
 

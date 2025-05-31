@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     product_service_charge: "0",
     product_delivery_charge: "0",
     signed_field_names: "total_amount,transaction_uuid,product_code",
-    success_url: "https://kalacrum.com/api/esewa/success",
+    success_url: "https://kalacrum.com",
     failure_url: "https://kalacrum.com",
     signature,
   };

@@ -680,17 +680,14 @@ export const appRouter = router({
       }
     }),
 
-  // In your tRPC router file (app/trpc/index.ts)
   getInvoiceStats: privateProcedure
     .input(
       z.object({
-        // Remove period parameter and only keep date range
         startDate: z.union([z.date(), z.string()]).optional(),
         endDate: z.union([z.date(), z.string()]).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
-      // Get the user ID from the context
       const { userId } = ctx;
 
       if (!userId) {
@@ -700,13 +697,11 @@ export const appRouter = router({
         });
       }
 
-      // Fetch the user from the database to check admin status
       const dbUser = await db.user.findUnique({
         where: { id: userId },
         select: { isAdmin: true },
       });
 
-      // Check if user is admin
       if (!dbUser?.isAdmin) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -714,7 +709,6 @@ export const appRouter = router({
         });
       }
 
-      // Convert string dates to Date objects if needed
       const startDate = input.startDate ? new Date(input.startDate) : undefined;
       const endDate = input.endDate ? new Date(input.endDate) : undefined;
 
@@ -725,7 +719,6 @@ export const appRouter = router({
 
       const createdWhereClause: WhereClause = {};
 
-      // Add date filters if provided
       if (startDate || endDate) {
         if (startDate) {
           paidWhereClause.paidAt = paidWhereClause.paidAt || {};
@@ -736,7 +729,6 @@ export const appRouter = router({
         }
 
         if (endDate) {
-          // Make sure end date is inclusive by setting it to the end of the day
           const inclusiveEnd = new Date(endDate);
           inclusiveEnd.setHours(23, 59, 59, 999);
 
@@ -748,56 +740,66 @@ export const appRouter = router({
         }
       }
 
-      // Get total revenue
-      const totalRevenue = await db.invoice.aggregate({
-        _sum: {
+      // Get unique invoices per user for total revenue
+      const uniqueInvoices = await db.invoice.groupBy({
+        by: ['userId'],
+        _max: {
           amount: true,
+          createdAt: true,
         },
         where: paidWhereClause,
       });
 
-      // Get count by status
+      const totalRevenue = uniqueInvoices.reduce((sum, invoice) => sum + (invoice._max.amount || 0), 0);
+
+      // Get count by status (unique per user)
       const statusCounts = await db.invoice.groupBy({
-        by: ["status"],
-        _count: {
-          id: true,
+        by: ['status', 'userId'],
+        _max: {
+          createdAt: true,
         },
         where: createdWhereClause,
       });
 
-      // Get count by payment method
+      // Count unique users per status
+      const uniqueStatusCounts = statusCounts.reduce((acc, curr) => {
+        acc[curr.status] = (acc[curr.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Get count by payment method (unique per user)
       const paymentMethodCounts = await db.invoice.groupBy({
-        by: ["paymentMethod"],
-        _count: {
-          id: true,
-        },
-        _sum: {
+        by: ['paymentMethod', 'userId'],
+        _max: {
           amount: true,
+          createdAt: true,
         },
         where: {
           ...paidWhereClause,
           status: "PAID",
         },
-        });
+      });
+
+      // Aggregate unique users per payment method
+      const uniquePaymentMethodCounts = paymentMethodCounts.reduce((acc, curr) => {
+        if (!acc[curr.paymentMethod]) {
+          acc[curr.paymentMethod] = {
+            count: 0,
+            amount: 0,
+          };
+        }
+        acc[curr.paymentMethod].count += 1;
+        acc[curr.paymentMethod].amount += curr._max.amount || 0;
+        return acc;
+      }, {} as Record<string, { count: number; amount: number }>);
 
       return {
-        totalRevenue: totalRevenue?._sum?.amount || 0,
-        statusCounts: statusCounts.reduce((acc, curr) => {
-          const count = typeof curr._count === 'object' && curr._count?.id ? curr._count.id : 0;
-          acc[curr.status] = count;
-          return acc;
-        }, {} as Record<string, number>),
-        paymentMethodCounts: paymentMethodCounts.reduce((acc, curr) => {
-          acc[curr.paymentMethod] = {
-            count: curr._count.id,
-            amount: curr._sum.amount || 0,
-          };
-          return acc;
-        }, {} as Record<string, { count: number; amount: number }>),
+        totalRevenue,
+        statusCounts: uniqueStatusCounts,
+        paymentMethodCounts: uniquePaymentMethodCounts,
       };
     }),
 
-  // Update the getInvoices procedure
   getInvoices: privateProcedure
     .input(
       z.object({
@@ -807,13 +809,11 @@ export const appRouter = router({
           .enum(["PENDING", "PAID", "FAILED", "REFUNDED", "CANCELED"])
           .optional(),
         userId: z.string().optional(),
-        // Remove period parameter and only keep date range
         startDate: z.union([z.date(), z.string()]).optional(),
         endDate: z.union([z.date(), z.string()]).optional(),
       })
     )
     .query(async ({ ctx, input }): Promise<InvoicesResponse> => {
-      // Get the user ID from the context
       const { userId } = ctx;
 
       if (!userId) {
@@ -823,13 +823,11 @@ export const appRouter = router({
         });
       }
 
-      // Fetch the user from the database to check admin status
       const dbUser = await db.user.findUnique({
         where: { id: userId },
         select: { isAdmin: true },
       });
 
-      // Check if user is admin
       if (!dbUser?.isAdmin) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -839,7 +837,6 @@ export const appRouter = router({
 
       const { limit, cursor, status, userId: queryUserId } = input;
 
-      // Convert string dates to Date objects if needed
       const startDate = input.startDate ? new Date(input.startDate) : undefined;
       const endDate = input.endDate ? new Date(input.endDate) : undefined;
 
@@ -854,7 +851,6 @@ export const appRouter = router({
         where.userId = queryUserId;
       }
 
-      // Add date range filter only if dates are provided
       if (startDate || endDate) {
         where.createdAt = {};
 
@@ -863,18 +859,36 @@ export const appRouter = router({
         }
 
         if (endDate) {
-          // Make end date inclusive by setting it to the end of the day
           const inclusiveEndDate = new Date(endDate);
           inclusiveEndDate.setHours(23, 59, 59, 999);
           where.createdAt.lte = inclusiveEndDate;
         }
       }
 
-      // Get invoices with pagination
+      // First, get the latest invoice for each user
+      const latestInvoices = await db.invoice.groupBy({
+        by: ['userId'],
+        _max: {
+          createdAt: true,
+        },
+        where,
+      });
+
+      // Then, get the full invoice details for these latest invoices
       const invoices = await db.invoice.findMany({
+        where: {
+          AND: [
+            where,
+            {
+              OR: latestInvoices.map(invoice => ({
+                userId: invoice.userId,
+                createdAt: invoice._max.createdAt || undefined,
+              })),
+            },
+          ],
+        },
         take: limit + 1,
         cursor: cursor ? { id: cursor } : undefined,
-        where,
         orderBy: {
           createdAt: "desc",
         },
@@ -894,7 +908,6 @@ export const appRouter = router({
         nextCursor = nextItem!.id;
       }
 
-      // Use type assertion to avoid deep type instantiation
       return {
         invoices: invoices as InvoiceWithUser[],
         nextCursor,

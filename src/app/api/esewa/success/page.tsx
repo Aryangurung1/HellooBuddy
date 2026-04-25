@@ -27,7 +27,7 @@ const EsewaSuccessContent = () => {
   useEffect(() => {
     // Prevent multiple processing attempts
     if (processed || loading || !dataQuery) {
-      console.log('Skipping payment processing:', { processed, loading, hasData: !!dataQuery });
+      console.log('Skipping payment processing..:', { processed, loading, hasData: !!dataQuery });
       return;
     }
 

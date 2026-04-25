@@ -125,7 +125,7 @@ const Dashboard = ({ subscriptionPlan }: PageProps) => {
           <DialogHeader>
             <DialogTitle>Delete PDFs</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this PDF? This action cannot be undone.
+              Are you sure you want to delete this PDF? This action cannot be undone
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
